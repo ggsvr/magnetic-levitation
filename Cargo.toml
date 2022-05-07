@@ -1,0 +1,22 @@
+[package]
+name = "levitation"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rgb = "0.8"
+
+[dependencies.opencv]
+version = "0.63"
+default-features = false
+features = [
+    "imgproc",
+    "features2d",
+    "flann",
+    "videoio",
+    "imgcodecs",
+    "rgb",
+    "highgui",
+]
