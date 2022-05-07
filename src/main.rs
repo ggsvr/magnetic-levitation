@@ -87,24 +87,8 @@ fn main() {
                     }
                 }
             }
-            //let (target_color, x, y) = match msg {
-            //    PositionMessage::Object(x, y) => (&mut object_color, x, y),
-            //    PositionMessage::Magnet(x, y) => (&mut magnet_color, x, y),
-            //};
-
-            //let value: rgb::alt::BGR8 = *cam_frame.at_2d(y, x).unwrap();
-            //*target_color = Some(value);
-            //println!("{:?}", *target_color);
         }
     }
-}
-
-fn create_trackbar_callback(tx: mpsc::SyncSender<Message>) -> gui::TrackbarCallback {
-    Some(Box::new(move |val| match val {
-        0 => tx.send(Message::SelectObject).unwrap(),
-        2 => tx.send(Message::SelectMagnet).unwrap(),
-        _ => (),
-    }))
 }
 
 fn create_mouse_callback(tx: mpsc::SyncSender<Message>) -> gui::MouseCallback {
