@@ -3,6 +3,18 @@
 version = 3
 
 [[package]]
+name = "adler"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
+
+[[package]]
+name = "adler32"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aae1277d39aeec15cb388266ecc24b11c80469deae6067e17a1a7aa9e5c1f234"
+
+[[package]]
 name = "aho-corasick"
 version = "0.7.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -18,10 +30,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
+name = "bitflags"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
 name = "bytemuck"
 version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
+
+[[package]]
+name = "byteorder"
+version = "1.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14c189c53d098945499cdfa7ecc63567cf3886b3332b312a5b4585d8d3a6a610"
 
 [[package]]
 name = "cc"
@@ -31,6 +55,12 @@ checksum = "2fff2a6927b3bb87f9595d67196a70493f627687a71d87a0d692242c33f58c11"
 dependencies = [
  "jobserver",
 ]
+
+[[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "clang"
@@ -53,6 +83,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "color_quant"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
+
+[[package]]
+name = "crc32fast"
+version = "1.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b540bd8bc810d3885c6ea91e2018302f68baba2129ab3e88f32389ee9370880d"
+dependencies = [
+ "cfg-if",
+]
+
+[[package]]
+name = "deflate"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c86f7e25f518f4b81808a2cf1c50996a61f5c2eb394b2393bd87f2a4780a432f"
+dependencies = [
+ "adler32",
+]
+
+[[package]]
 name = "dunce"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -63,6 +117,21 @@ name = "glob"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
+name = "image"
+version = "0.24.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "28edd9d7bc256be2502e325ac0628bde30b7001b9b52e0abe31a1a9dc2701212"
+dependencies = [
+ "bytemuck",
+ "byteorder",
+ "color_quant",
+ "num-iter",
+ "num-rational",
+ "num-traits",
+ "png",
+]
 
 [[package]]
 name = "jobserver"
@@ -77,8 +146,8 @@ dependencies = [
 name = "levitation"
 version = "0.1.0"
 dependencies = [
+ "image",
  "opencv",
- "rgb",
 ]
 
 [[package]]
@@ -98,6 +167,47 @@ name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
+
+[[package]]
+name = "miniz_oxide"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2b29bd4bc3f33391105ebee3589c19197c4271e3e5a9ec9bfe8127eeff8f082"
+dependencies = [
+ "adler",
+]
+
+[[package]]
+name = "num-integer"
+version = "0.1.45"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "225d3389fb3509a24c93f5c29eb6bde2586b98d9f016636dff58d7c6f7569cd9"
+dependencies = [
+ "autocfg",
+ "num-traits",
+]
+
+[[package]]
+name = "num-iter"
+version = "0.1.43"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d03e6c028c5dc5cac6e2dec0efda81fc887605bb3d884578bb6d6bf7514e252"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
+name = "num-rational"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d41702bd167c2df5520b384281bc111a4b5efcf7fbc4c9c222c815b07e0a6a6a"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
 
 [[package]]
 name = "num-traits"
@@ -130,7 +240,6 @@ dependencies = [
  "once_cell",
  "opencv-binding-generator",
  "pkg-config",
- "rgb",
  "semver",
  "shlex",
  "vcpkg",
@@ -164,6 +273,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1df8c4ec4b0627e53bdf214615ad287367e482558cf84b109250b37464dc03ae"
 
 [[package]]
+name = "png"
+version = "0.17.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc38c0ad57efb786dd57b9864e5b18bae478c00c824dc55a38bbc9da95dde3ba"
+dependencies = [
+ "bitflags",
+ "crc32fast",
+ "deflate",
+ "miniz_oxide",
+]
+
+[[package]]
 name = "regex"
 version = "1.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -179,15 +300,6 @@ name = "regex-syntax"
 version = "0.6.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f497285884f3fcff424ffc933e56d7cbca511def0c9831a7f9b5f6153e3cc89b"
-
-[[package]]
-name = "rgb"
-version = "0.8.32"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e74fdc210d8f24a7dbfedc13b04ba5764f5232754ccebfdf5fff1bad791ccbc6"
-dependencies = [
- "bytemuck",
-]
 
 [[package]]
 name = "semver"

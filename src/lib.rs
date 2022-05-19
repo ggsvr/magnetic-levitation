@@ -1,95 +1,93 @@
+pub mod color;
 pub mod gui;
+use std::f32::consts::PI;
 
-use cv::core::Scalar;
-use cv::prelude::*;
+use color::Color;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Ball {
+    pub x: f32,
+    pub y: f32,
+}
+
+use cv::{
+    core::Ptr,
+    features2d::{SimpleBlobDetector, SimpleBlobDetector_Params},
+    prelude::*,
+};
 use opencv as cv;
 
-#[derive(Debug, Clone)]
-pub struct Hsv {
-    pub h: u8,
-    pub s: u8,
-    pub v: u8,
+fn lower_upper(color: Color, tolerance: u8) -> (Color, Color) {
+    (color - tolerance, color + tolerance)
 }
 
-impl Hsv {
-    pub fn new() -> Self {
-        Self { h: 0, s: 0, v: 0 }
-    }
-}
+pub fn isolate_obj(img: &Mat, color: Color, tolerance: u8, dst: &mut Mat) {
+    let (lower, upper) = lower_upper(color, tolerance);
 
-pub fn convert_mat(mat: &mut Mat) {
-    if mat.typ() == cv::core::CV_8UC3 {
-        return;
-    }
+    let lower = cv::core::Scalar::from((lower.b().into(), lower.g().into(), lower.r().into()));
+    let upper = cv::core::Scalar::from((upper.b().into(), upper.g().into(), upper.r().into()));
 
     let mut out = Mat::default();
-    mat.convert_to(&mut out, cv::core::CV_8UC3, 1., 0.).unwrap();
-    *mat = out;
+    cv::core::in_range(img, &lower, &upper, &mut out).unwrap();
+    cv::imgproc::cvt_color(&out, dst, cv::imgproc::COLOR_GRAY2BGR, 3).unwrap();
 }
 
-pub fn rgb_to_hsv(r: u8, g: u8, b: u8) -> Hsv {
-    let r = r as f32 / 255.;
-    let g = g as f32 / 255.;
-    let b = b as f32 / 255.;
-    let c_max = r.max(g).max(b);
-    let c_min = r.min(g).min(b);
-    let delta = c_max - c_min;
-
-    // 0 <= v <= 1
-    let v = c_max;
-
-    // 0 <= s <= 1
-    let s = if c_max == 0. { 0. } else { delta / c_max };
-
-    // 0 <= h <= 360
-    let h = if c_max == r {
-        60. * (g - b) / delta
-    } else if c_max == g {
-        120. + 60. * (b - r) / delta
-    } else if c_max == b {
-        240. + 60. * (r - g) / delta
-    } else {
-        0.
+fn create_blob_detector() -> Ptr<SimpleBlobDetector> {
+    let blob_params = SimpleBlobDetector_Params {
+        filter_by_color: true,
+        blob_color: 255,
+        filter_by_area: false,
+        filter_by_circularity: false,
+        filter_by_convexity: false,
+        filter_by_inertia: false,
+        ..SimpleBlobDetector_Params::default().unwrap()
     };
 
-    let h = (h / 2.) as u8;
-    let s = (s * 255.) as u8;
-    let v = (v * 255.) as u8;
-
-    Hsv { h, s, v }
+    SimpleBlobDetector::create(blob_params).unwrap()
 }
 
-pub fn isolate_object(
-    img: &Mat,
-    color: Hsv,
-    h_tolerance: u8,
-    s_tolerance: u8,
-    v_tolerance: u8,
-    dst: &mut Mat,
-) {
-    assert!(
-        h_tolerance <= 180,
-        "HUE value must be between 0 and 180, but got {h_tolerance}"
-    );
+pub fn process_image(src: &Mat, color: Color, tolerance: u8, dst: &mut Mat) -> Option<Ball> {
+    let mut blob_detector = create_blob_detector();
 
-    let mut hsv_img = Mat::default();
-    cv::imgproc::cvt_color(&img, &mut hsv_img, cv::imgproc::COLOR_BGR2HSV, 0).unwrap();
+    isolate_obj(src, color, tolerance, dst);
 
-    let mut low_hsv = [color.h, color.s, color.v];
-    let mut high_hsv = [color.h, color.s, color.v];
+    let mut keypoints = cv::core::Vector::new();
+    blob_detector
+        .detect(dst, &mut keypoints, &cv::core::no_array())
+        .unwrap();
 
-    for (i, &channel) in [h_tolerance, s_tolerance, v_tolerance].iter().enumerate() {
-        low_hsv[i] = low_hsv[i].saturating_sub(channel);
-        high_hsv[i] = high_hsv[i].saturating_add(channel);
+    //assert!(
+    //    keypoints.len() <= 1,
+    //    "More than 1 blob detected, maybe check color calibration"
+    //);
+
+    match keypoints.get(0) {
+        Ok(kp) => Some(Ball {
+            x: kp.pt.x,
+            y: kp.pt.y,
+        }),
+        Err(_) => None,
+    }
+}
+
+pub fn save_img(img: &Mat, ball: Ball) {
+    let size = img.size().unwrap();
+    let mut out = image::RgbImage::new(size.width as u32, size.height as u32);
+
+    for (x, y, pixel) in out.enumerate_pixels_mut() {
+        let color: &cv::core::Vec3b = img.at_2d(y as i32, x as i32).unwrap();
+        let color = Color::new(color.0[2], color.0[1], color.0[0]);
+
+        let x = x as f32;
+        let y = y as f32;
+
+        let distance = ((x - ball.x).powi(2) + (y - ball.y).powi(2)).sqrt().abs();
+        if distance < 10. {
+            *pixel = image::Rgb([255, 0, 0]);
+        } else {
+            *pixel = image::Rgb(color.channels);
+        }
     }
 
-    high_hsv[0] = high_hsv[0].min(180);
-
-    cv::core::in_range(
-        &hsv_img,
-        &cv::core::VecN(low_hsv),
-        &cv::core::VecN(high_hsv),
-        dst,
-    )
-    .unwrap();
+    out.save("out.png").unwrap();
 }

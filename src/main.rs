@@ -1,11 +1,16 @@
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicU8, Ordering::SeqCst},
+    mpsc, Arc, Mutex,
+};
 
 use cv::highgui as cv_gui;
 use cv::prelude::*;
 use opencv as cv;
 
+use levitation::color::Color;
 use levitation::gui::*;
-use levitation::{isolate_object, rgb_to_hsv, Hsv};
+use levitation::isolate_obj;
+use levitation::process_image;
 
 #[cfg(target_os = "linux")]
 const CAP_BACKEND: i32 = cv::videoio::CAP_V4L2;
@@ -13,6 +18,7 @@ const CAP_BACKEND: i32 = cv::videoio::CAP_V4L2;
 const CAP_BACKEND: i32 = cv::videoio::CAP_ANY;
 
 fn main() {
+    // setup
     cv_gui::named_window(WINDOW_NAME, cv_gui::WINDOW_NORMAL).expect("failed to create window");
 
     let mut cap = cv::videoio::VideoCapture::new(0, CAP_BACKEND).expect("failed to open camera");
@@ -23,48 +29,31 @@ fn main() {
 
     cv_gui::set_mouse_callback(WINDOW_NAME, mouse_pos_callback(tx.clone())).unwrap();
 
-    cv_gui::create_button(
-        "Select Object",
-        create_button_callback(tx.clone(), Message::SelectObject),
-        cv_gui::QT_PUSH_BUTTON,
-        false,
-    )
-    .unwrap();
+    levitation::gui::create_buttons(tx.clone());
 
-    cv_gui::create_button(
-        "Select Magnet",
-        create_button_callback(tx.clone(), Message::SelectMagnet),
-        cv_gui::QT_PUSH_BUTTON,
-        false,
-    )
-    .unwrap();
+    let tolerance = Arc::new(AtomicU8::new(0));
+    levitation::gui::create_tolerance_trackbar(tolerance.clone());
 
-    cv_gui::create_button(
-        "Raw Image",
-        raw_image_callback(tx.clone()),
-        cv_gui::QT_CHECKBOX,
-        true,
-    )
-    .unwrap();
-
-    let hsv_tolerance = Arc::new(Mutex::new(Hsv::new()));
-    create_tolerance_trackbars(hsv_tolerance.clone());
-
+    // object uses detection by color,
+    // while the magnet just uses the position,
+    // since the magnet will stay still relative to the camera
     let mut object_color = None;
     let mut select_object = false;
-    let mut magnet_color = None;
+    let mut magnet_pos = None;
     let mut select_magnet = false;
     let mut is_raw = true;
+
+    let mut ball = None;
 
     let mut obj_frame = Mat::default();
 
     loop {
+        // get camera frame
         if !cap.read(&mut cam_frame).unwrap() {
             eprintln!("NO FRAMES GRABBED");
         }
-        //cv_gui::imshow(WINDOW_NAME, &cam_frame).unwrap();
-        //convert_mat(&mut cam_frame);
 
+        // listen for message from UI elements
         if let Ok(msg) = rx.try_recv() {
             match msg {
                 Message::SelectObject => {
@@ -75,11 +64,15 @@ fn main() {
                     select_magnet = true;
                     select_object = false;
                 }
+
+                // mouse pointer position
                 Message::Position(x, y) => {
-                    let col: rgb::RGB8 = *cam_frame.at_2d(y, x).unwrap();
+                    // convert MAT element to Color
+                    let col: cv::core::Vec3b = *cam_frame.at_2d(y, x).unwrap();
+                    let col = Color::new(col.0[2], col.0[1], col.0[0]);
 
                     if select_magnet {
-                        magnet_color = Some(col);
+                        magnet_pos = Some((x, y));
                         select_magnet = false;
                     } else if select_object {
                         object_color = Some(col);
@@ -87,6 +80,11 @@ fn main() {
                     }
                 }
                 Message::ToggleRaw(b) => is_raw = b,
+                Message::SaveImg => {
+                    if let Some(b) = ball {
+                        levitation::save_img(&cam_frame, b);
+                    }
+                }
             }
         }
 
@@ -94,19 +92,17 @@ fn main() {
             if is_raw {
                 cv_gui::imshow(WINDOW_NAME, &cam_frame).unwrap();
             } else {
-                let hsv_tol = hsv_tolerance.lock().unwrap();
-                let hsv = rgb_to_hsv(col.r, col.g, col.b);
+                let tol = tolerance.load(SeqCst);
 
-                isolate_object(
-                    &cam_frame,
-                    hsv,
-                    hsv_tol.h,
-                    hsv_tol.s,
-                    hsv_tol.v,
-                    &mut obj_frame,
-                );
+                //isolate_obj(&cam_frame, col, tol, &mut obj_frame);
+                ball = process_image(&cam_frame, col, tol, &mut obj_frame);
+                if let Some(b) = &ball {
+                    println!("{b:?}");
+                }
                 cv_gui::imshow(WINDOW_NAME, &obj_frame).unwrap();
             }
+        } else {
+            cv_gui::imshow(WINDOW_NAME, &cam_frame).unwrap();
         }
 
         let key = cv_gui::poll_key().unwrap();
