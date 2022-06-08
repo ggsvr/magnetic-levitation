@@ -1,5 +1,6 @@
 pub mod color;
 pub mod gui;
+pub mod serial;
 use std::f32::consts::PI;
 
 use color::Color;
@@ -91,3 +92,27 @@ pub fn save_img(img: &Mat, ball: Ball) {
 
     out.save("out.png").unwrap();
 }
+
+//use serialport::SerialPort;
+//use std::sync::mpsc;
+//use std::thread;
+//
+//pub fn serial(port: Option<Box<dyn SerialPort>>) -> mpsc::Sender<[u8; 4]> {
+//    let (tx, rx) = mpsc::channel::<[u8; 4]>();
+//
+//    match port {
+//        Some(mut p) => thread::spawn(move || {
+//            while let Ok(bytes) = rx.recv() {
+//                p.write_all(&bytes).unwrap();
+//            }
+//        }),
+//        None => thread::spawn(move || {
+//            while let Ok(bytes) = rx.recv() {
+//                eprintln!("{bytes:?}");
+//            }
+//        }),
+//    };
+//
+//    tx
+//}
+//

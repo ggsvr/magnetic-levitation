@@ -11,6 +11,7 @@ use levitation::color::Color;
 use levitation::gui::*;
 use levitation::isolate_obj;
 use levitation::process_image;
+use levitation::serial;
 
 #[cfg(target_os = "linux")]
 const CAP_BACKEND: i32 = cv::videoio::CAP_V4L2;
@@ -19,6 +20,7 @@ const CAP_BACKEND: i32 = cv::videoio::CAP_ANY;
 
 fn main() {
     // setup
+    let mut port = serial::select_port().unwrap();
     cv_gui::named_window(WINDOW_NAME, cv_gui::WINDOW_NORMAL).expect("failed to create window");
 
     let mut cap = cv::videoio::VideoCapture::new(0, CAP_BACKEND).expect("failed to open camera");
@@ -46,6 +48,11 @@ fn main() {
     let mut ball = None;
 
     let mut obj_frame = Mat::default();
+
+    port.set_timeout(std::time::Duration::from_millis(500))
+        .unwrap();
+
+    //let port = levitation::select_port().unwrap();
 
     loop {
         // get camera frame
@@ -97,7 +104,8 @@ fn main() {
                 //isolate_obj(&cam_frame, col, tol, &mut obj_frame);
                 ball = process_image(&cam_frame, col, tol, &mut obj_frame);
                 if let Some(b) = &ball {
-                    println!("{b:?}");
+                    //println!("{b:?}");
+                    serial::send_data(&mut *port, b.y);
                 }
                 cv_gui::imshow(WINDOW_NAME, &obj_frame).unwrap();
             }
